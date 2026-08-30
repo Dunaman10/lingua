@@ -7,24 +7,161 @@ import {
   Image,
   ScrollView,
   StyleSheet,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { useSignIn, useSSO } from "@clerk/expo";
+import type { OAuthStrategy } from "@clerk/shared/types";
 import { images } from "@/constants/images";
 import { VerificationModal } from "@/components/VerificationModal";
 
+function getErrorMessage(error: any): string {
+  if (!error) return "An unexpected error occurred.";
+  if (typeof error === "string") return error;
+  if (Array.isArray(error?.errors) && error.errors.length > 0) {
+    return (
+      error.errors[0]?.longMessage ||
+      error.errors[0]?.message ||
+      "An unexpected error occurred."
+    );
+  }
+  if (error.longMessage) return error.longMessage;
+  if (error.message) return error.message;
+  return "An unexpected error occurred.";
+}
+
 export default function SignInScreen() {
   const router = useRouter();
-  const [email, setEmail] = useState("alex@gmail.com");
-  const [modalVisible, setModalVisible] = useState(false);
+  const { signIn, fetchStatus } = useSignIn();
+  const { startSSOFlow } = useSSO();
 
-  const handleSignIn = () => {
-    setModalVisible(true);
+  const [email, setEmail] = useState("");
+  const [modalVisible, setModalVisible] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const isFetching = fetchStatus === "fetching" || loading;
+
+  const handleSignIn = async () => {
+    setErrorMessage(null);
+
+    if (!email.trim()) {
+      setErrorMessage("Please enter your email address.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      if (signIn.reset) {
+        signIn.reset();
+      }
+
+      const { error } = await signIn.emailCode.sendCode({
+        emailAddress: email.trim(),
+      });
+
+      if (error) {
+        setErrorMessage(getErrorMessage(error));
+        setLoading(false);
+        return;
+      }
+
+      setModalVisible(true);
+    } catch (err: any) {
+      setErrorMessage(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyCode = async (code: string) => {
+    try {
+      const { error } = await signIn.emailCode.verifyCode({ code });
+      if (error) {
+        return {
+          success: false,
+          error: getErrorMessage(error),
+        };
+      }
+
+      if (signIn.status === "complete") {
+        const { error: finalizeError } = await signIn.finalize({
+          navigate: () => {
+            router.replace("/");
+          },
+        });
+
+        if (finalizeError) {
+          return {
+            success: false,
+            error: getErrorMessage(finalizeError),
+          };
+        }
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: getErrorMessage(err),
+      };
+    }
+  };
+
+  const handleResendCode = async () => {
+    try {
+      const { error } = await signIn.emailCode.sendCode({
+        emailAddress: email.trim(),
+      });
+      if (error) {
+        return {
+          success: false,
+          error: getErrorMessage(error),
+        };
+      }
+      return { success: true };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: getErrorMessage(err),
+      };
+    }
   };
 
   const handleVerificationSuccess = () => {
     setModalVisible(false);
     router.replace("/");
+  };
+
+  const handleSocialAuth = async (strategy: OAuthStrategy) => {
+    setErrorMessage(null);
+    setLoading(true);
+    try {
+      const { createdSessionId, setActive } = await startSSOFlow({
+        strategy,
+      });
+
+      if (createdSessionId && setActive) {
+        await setActive({ session: createdSessionId });
+        router.replace("/");
+      }
+    } catch (err: any) {
+      const msg = err?.message || "";
+      if (
+        err?.code === "SIGN_IN_CANCELLED" ||
+        err?.code === "-5" ||
+        msg.includes("cancelled") ||
+        msg.includes("Popup window was blocked") ||
+        msg.includes("window.open()") ||
+        msg.includes("dismissed")
+      ) {
+        return;
+      }
+      setErrorMessage(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -63,21 +200,35 @@ export default function SignInScreen() {
           />
         </View>
 
+        {/* Global Error Banner */}
+        {errorMessage && (
+          <View className="bg-[#FEE2E2] p-3 rounded-xl mb-3 border border-[#FCA5A5]">
+            <Text className="font-poppins-medium text-xs text-[#DC2626] text-center">
+              {errorMessage}
+            </Text>
+          </View>
+        )}
+
         {/* Input Fields */}
         <View className="gap-3 mt-2">
-          {/* Email Input Card (No Password Field for Sign In as requested) */}
+          {/* Email Input Card */}
           <View style={styles.inputCard}>
             <Text className="font-poppins-regular text-xs text-text-secondary mb-1">
               Email
             </Text>
             <TextInput
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(text) => {
+                setEmail(text);
+                if (errorMessage) setErrorMessage(null);
+              }}
               placeholder="Enter your email"
               placeholderTextColor="#9CA3AF"
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
+              underlineColorAndroid="transparent"
+              editable={!isFetching}
               style={styles.textInput}
             />
           </View>
@@ -87,11 +238,16 @@ export default function SignInScreen() {
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={handleSignIn}
+          disabled={isFetching}
           className="w-full h-14 bg-lingua-deep-purple rounded-2xl items-center justify-center mt-5 shadow-sm"
         >
-          <Text className="font-poppins-semibold text-white text-[17px]">
-            Sign In
-          </Text>
+          {isFetching ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Text className="font-poppins-semibold text-white text-[17px]">
+              Sign In
+            </Text>
+          )}
         </TouchableOpacity>
 
         {/* Divider: or continue with */}
@@ -108,7 +264,8 @@ export default function SignInScreen() {
           {/* Google */}
           <TouchableOpacity
             activeOpacity={0.8}
-            onPress={handleSignIn}
+            onPress={() => handleSocialAuth("oauth_google")}
+            disabled={isFetching}
             style={styles.socialButton}
           >
             <Image
@@ -116,7 +273,7 @@ export default function SignInScreen() {
               style={styles.socialIcon}
               resizeMode="contain"
             />
-            <Text className="font-poppins-medium text-text-primary text-[15px] ml-3">
+            <Text className="font-poppins-semibold text-text-primary text-[15px]">
               Continue with Google
             </Text>
           </TouchableOpacity>
@@ -124,7 +281,8 @@ export default function SignInScreen() {
           {/* Facebook */}
           <TouchableOpacity
             activeOpacity={0.8}
-            onPress={handleSignIn}
+            onPress={() => handleSocialAuth("oauth_facebook")}
+            disabled={isFetching}
             style={styles.socialButton}
           >
             <Image
@@ -132,7 +290,7 @@ export default function SignInScreen() {
               style={styles.socialIcon}
               resizeMode="contain"
             />
-            <Text className="font-poppins-medium text-text-primary text-[15px] ml-3">
+            <Text className="font-poppins-semibold text-text-primary text-[15px]">
               Continue with Facebook
             </Text>
           </TouchableOpacity>
@@ -140,7 +298,8 @@ export default function SignInScreen() {
           {/* Apple */}
           <TouchableOpacity
             activeOpacity={0.8}
-            onPress={handleSignIn}
+            onPress={() => handleSocialAuth("oauth_apple")}
+            disabled={isFetching}
             style={styles.socialButton}
           >
             <Image
@@ -148,7 +307,7 @@ export default function SignInScreen() {
               style={styles.socialIcon}
               resizeMode="contain"
             />
-            <Text className="font-poppins-medium text-text-primary text-[15px] ml-3">
+            <Text className="font-poppins-semibold text-text-primary text-[15px]">
               Continue with Apple
             </Text>
           </TouchableOpacity>
@@ -175,6 +334,8 @@ export default function SignInScreen() {
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
         onSuccess={handleVerificationSuccess}
+        onVerify={handleVerifyCode}
+        onResend={handleResendCode}
         email={email}
       />
     </SafeAreaView>
@@ -226,8 +387,12 @@ const styles = StyleSheet.create({
     color: "#0D132B",
     padding: 0,
     margin: 0,
+    borderWidth: 0,
+    outlineWidth: 0,
+    backgroundColor: "transparent",
   },
   socialButton: {
+    position: "relative",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -238,6 +403,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   socialIcon: {
+    position: "absolute",
+    left: 20,
     width: 22,
     height: 22,
   },

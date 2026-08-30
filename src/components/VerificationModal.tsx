@@ -9,12 +9,15 @@ import {
   Platform,
   StyleSheet,
   Pressable,
+  ActivityIndicator,
 } from "react-native";
 
 interface VerificationModalProps {
   visible: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  onVerify?: (code: string) => Promise<{ success: boolean; error?: string }>;
+  onResend?: () => Promise<{ success: boolean; error?: string }>;
   email?: string;
 }
 
@@ -22,25 +25,57 @@ export function VerificationModal({
   visible,
   onClose,
   onSuccess,
+  onVerify,
+  onResend,
   email = "alex@gmail.com",
 }: VerificationModalProps) {
   const [code, setCode] = useState<string[]>(["", "", "", "", "", ""]);
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [resendStatus, setResendStatus] = useState<string | null>(null);
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
   useEffect(() => {
     if (visible) {
-      // Focus first input upon opening modal and reset code
       const timer = setTimeout(() => {
         setCode(["", "", "", "", "", ""]);
+        setErrorMessage(null);
+        setResendStatus(null);
+        setLoading(false);
         inputRefs.current[0]?.focus();
       }, 100);
       return () => clearTimeout(timer);
     }
   }, [visible]);
 
+  const submitCode = async (fullCode: string) => {
+    setErrorMessage(null);
+    setLoading(true);
+    try {
+      if (onVerify) {
+        const result = await onVerify(fullCode);
+        if (result.success) {
+          onSuccess();
+        } else {
+          setErrorMessage(result.error || "Invalid verification code");
+          setCode(["", "", "", "", "", ""]);
+          inputRefs.current[0]?.focus();
+        }
+      } else {
+        onSuccess();
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || "Verification failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleChangeText = (text: string, index: number) => {
-    // Handle paste of complete 6-digit code or partial
+    setErrorMessage(null);
     const cleanText = text.replace(/[^0-9]/g, "");
+
+    // Handle paste of complete 6-digit code or partial
     if (cleanText.length > 1) {
       const newCode = [...code];
       for (let i = 0; i < 6; i++) {
@@ -51,7 +86,7 @@ export function VerificationModal({
       inputRefs.current[nextIndex]?.focus();
 
       if (cleanText.length >= 6) {
-        onSuccess();
+        submitCode(newCode.join(""));
       }
       return;
     }
@@ -65,10 +100,10 @@ export function VerificationModal({
       if (index < 5) {
         inputRefs.current[index + 1]?.focus();
       } else {
-        // Check if all 6 digits are now filled
+        // Check if all 6 digits are filled
         const isComplete = newCode.every((digit) => digit.length === 1);
         if (isComplete) {
-          onSuccess();
+          submitCode(newCode.join(""));
         }
       }
     }
@@ -77,12 +112,30 @@ export function VerificationModal({
   const handleKeyPress = (e: any, index: number) => {
     if (e.nativeEvent.key === "Backspace") {
       if (code[index] === "" && index > 0) {
-        // Move to previous input and clear it
         const newCode = [...code];
         newCode[index - 1] = "";
         setCode(newCode);
         inputRefs.current[index - 1]?.focus();
       }
+    }
+  };
+
+  const handleResend = async () => {
+    if (!onResend || loading) return;
+    setErrorMessage(null);
+    setResendStatus("Sending...");
+    try {
+      const res = await onResend();
+      if (res.success) {
+        setResendStatus("Code resent successfully!");
+        setTimeout(() => setResendStatus(null), 3000);
+      } else {
+        setResendStatus(null);
+        setErrorMessage(res.error || "Failed to resend code");
+      }
+    } catch (err: any) {
+      setResendStatus(null);
+      setErrorMessage(err?.message || "Failed to resend code");
     }
   };
 
@@ -129,7 +182,7 @@ export function VerificationModal({
           </Text>
 
           {/* 6 Digit Inputs */}
-          <View className="flex-row justify-between items-center w-full mt-6 px-1 gap-2">
+          <View style={styles.inputsRow}>
             {code.map((digit, index) => {
               const isFilled = digit.length > 0;
               return (
@@ -145,21 +198,52 @@ export function VerificationModal({
                   maxLength={1}
                   selectTextOnFocus
                   textAlign="center"
+                  editable={!loading}
+                  underlineColorAndroid="transparent"
                   style={[
                     styles.codeInput,
                     isFilled && styles.codeInputFilled,
+                    errorMessage ? styles.codeInputError : null,
                   ]}
                 />
               );
             })}
           </View>
 
+          {/* Loading Indicator */}
+          {loading && (
+            <View className="mt-4 flex-row items-center gap-2">
+              <ActivityIndicator size="small" color="#6C4EF5" />
+              <Text className="font-poppins-regular text-xs text-text-secondary">
+                Verifying code...
+              </Text>
+            </View>
+          )}
+
+          {/* Error Message */}
+          {errorMessage && !loading && (
+            <Text className="font-poppins-medium text-xs text-[#DC2626] text-center mt-3 px-2">
+              {errorMessage}
+            </Text>
+          )}
+
+          {/* Resend Status Notification */}
+          {resendStatus && (
+            <Text className="font-poppins-medium text-xs text-lingua-deep-purple text-center mt-3">
+              {resendStatus}
+            </Text>
+          )}
+
           {/* Resend Code Action */}
           <View className="flex-row items-center justify-center mt-6">
             <Text className="font-poppins-regular text-xs text-text-secondary">
               {"Didn't receive the code? "}
             </Text>
-            <TouchableOpacity activeOpacity={0.7}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={handleResend}
+              disabled={loading}
+            >
               <Text className="font-poppins-semibold text-xs text-lingua-deep-purple">
                 Resend
               </Text>
@@ -177,16 +261,17 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(13, 19, 43, 0.45)",
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
   },
   backdrop: {
     ...StyleSheet.absoluteFill,
   },
   modalCard: {
     width: "100%",
+    maxWidth: 380,
     backgroundColor: "#FFFFFF",
     borderRadius: 28,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingTop: 28,
     paddingBottom: 24,
     alignItems: "center",
@@ -215,8 +300,18 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     lineHeight: 16,
   },
+  inputsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: "100%",
+    marginTop: 24,
+    gap: 6,
+  },
   codeInput: {
     flex: 1,
+    minWidth: 0,
+    maxWidth: 48,
     height: 52,
     backgroundColor: "#F6F7FB",
     borderRadius: 14,
@@ -225,10 +320,16 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Bold",
     fontSize: 20,
     color: "#0D132B",
+    textAlign: "center",
     padding: 0,
+    margin: 0,
+    outlineWidth: 0,
   },
   codeInputFilled: {
     borderColor: "#6C4EF5",
     backgroundColor: "#FFFFFF",
+  },
+  codeInputError: {
+    borderColor: "#DC2626",
   },
 });

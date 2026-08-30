@@ -102,3 +102,17 @@
   line-height: 15.4px;
   color: #6B7280;
 }
+
+/* Universal input reset for web */
+input, textarea {
+  outline: none !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  box-shadow: none !important;
+}
+
+input:focus, textarea:focus {
+  outline: none !important;
+  border-width: 0 !important;
+  box-shadow: none !important;
+}
