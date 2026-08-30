@@ -8,6 +8,9 @@ export const images = {
   palace: require("@/assets/images/palace.png"),
   treasure: require("@/assets/images/treasure.png"),
   icon: require("@/assets/images/icon.png"),
+  google: require("@/assets/images/google.png"),
+  facebook: require("@/assets/images/facebook.png"),
+  apple: require("@/assets/images/apple.png"),
   tabIcons: {
     home: require("@/assets/images/tabIcons/home.png"),
     explore: require("@/assets/images/tabIcons/explore.png"),
@@ -15,3 +18,4 @@ export const images = {
 } as const;
 
 export default images;
+

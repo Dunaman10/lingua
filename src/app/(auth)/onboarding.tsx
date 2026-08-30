@@ -8,8 +8,8 @@ export default function OnboardingScreen() {
   const router = useRouter();
 
   const handleGetStarted = () => {
-    // Navigate back to home or next screen
-    router.replace("/");
+    // Navigate to sign up screen
+    router.push("/signup");
   };
 
   return (
