@@ -1,350 +1,138 @@
-import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet } from "react-native";
+import React from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
+  StyleSheet,
+  Image,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Link } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
+import { useAuth, useUser, useClerk } from "@clerk/expo";
 import { images } from "@/constants/images";
 
 export default function Index() {
+  const { isLoaded, isSignedIn } = useAuth();
+  const { user } = useUser();
+  const { signOut } = useClerk();
+  const router = useRouter();
+
+  if (!isLoaded) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#6C4EF5" />
+      </View>
+    );
+  }
+
+  if (!isSignedIn) {
+    return <Redirect href="/onboarding" />;
+  }
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      router.replace("/onboarding");
+    } catch (err) {
+      console.error("Sign out error:", err);
+    }
+  };
+
+  const displayName =
+    user?.firstName ||
+    user?.emailAddresses[0]?.emailAddress?.split("@")[0] ||
+    "Friend";
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header / Brand Section */}
-        <View className="items-center py-6 border-b border-border mb-6">
-          <View className="flex-row items-center gap-3">
-            <Image
-              source={images.mascotLogo}
-              className="w-16 h-16"
-              resizeMode="contain"
-            />
-            <Text className="typography-h1 text-text-primary font-bold">lingua</Text>
-          </View>
-          <Text className="typography-caption text-text-secondary mt-1 tracking-wider uppercase">
-            Design System & Theme
-          </Text>
-        </View>
-
-        {/* Navigation to Onboarding Screen */}
-        <Link href="/onboarding" asChild>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            className="w-full bg-lingua-deep-purple p-4 rounded-2xl flex-row items-center justify-between mb-6 shadow-sm"
-          >
-            <View className="flex-row items-center gap-3">
+      <View className="flex-1 justify-between px-6 py-6">
+        {/* Top Header */}
+        <View>
+          <View className="flex-row items-center justify-between pt-2">
+            <View className="flex-row items-center gap-2">
               <Image
                 source={images.mascotLogo}
-                className="w-10 h-10"
+                style={styles.headerLogo}
                 resizeMode="contain"
               />
-              <View>
-                <Text className="font-poppins-semibold text-white text-base">
-                  Onboarding Screen
-                </Text>
-                <Text className="font-poppins-regular text-white/80 text-xs">
-                  Tap to view onboarding flow
-                </Text>
-              </View>
+              <Text className="font-poppins-bold text-2xl text-text-primary tracking-tight">
+                lingua
+              </Text>
             </View>
-            <View className="w-2.5 h-2.5 border-t-2 border-r-2 border-white rotate-45 mr-2" />
-          </TouchableOpacity>
-        </Link>
 
-        {/* Brand Showcase Card */}
-        <View className="bg-surface rounded-2xl p-5 border border-border mb-6">
-          <Text className="typography-caption text-lingua-purple font-semibold uppercase tracking-wider mb-3">
-            BRAND
-          </Text>
-          <View className="flex-row items-center justify-center py-4 bg-white rounded-xl border border-border gap-4">
-            <Image
-              source={images.mascotLogo}
-              className="w-20 h-20"
-              resizeMode="contain"
-            />
-            <Text className="text-4xl font-bold text-text-primary tracking-tight font-poppins-bold">
-              lingua
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={handleSignOut}
+              style={styles.signOutButton}
+            >
+              <Text className="font-poppins-medium text-xs text-[#DC2626]">
+                Sign Out
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Welcome Card */}
+          <View className="mt-8 bg-white p-6 rounded-3xl border-[1.5px] border-border shadow-sm">
+            <Text className="font-poppins-regular text-sm text-text-secondary">
+              Welcome back,
             </Text>
-          </View>
-        </View>
+            <Text className="font-poppins-bold text-[26px] text-text-primary mt-1">
+              {displayName} 👋
+            </Text>
+            <Text className="font-poppins-regular text-xs text-text-secondary mt-1">
+              {user?.primaryEmailAddress?.emailAddress}
+            </Text>
 
-        {/* Colors Section */}
-        <View className="bg-surface rounded-2xl p-5 border border-border mb-6">
-          <Text className="typography-caption text-lingua-purple font-semibold uppercase tracking-wider mb-4">
-            COLORS
-          </Text>
+            <View className="mt-4 pt-4 border-t border-[#F3F4F6] flex-row items-center justify-between">
+              <View className="flex-row items-center gap-2">
+                <Text className="text-xl">🔥</Text>
+                <View>
+                  <Text className="font-poppins-bold text-sm text-text-primary">
+                    1 Day Streak
+                  </Text>
+                  <Text className="font-poppins-regular text-[11px] text-text-secondary">
+                    Start learning to build streak
+                  </Text>
+                </View>
+              </View>
 
-          {/* Primary Colors */}
-          <Text className="typography-caption text-text-secondary uppercase tracking-wider mb-3 font-semibold">
-            PRIMARY
-          </Text>
-          <View className="flex-row flex-wrap justify-between mb-5 gap-y-3">
-            <View className="w-[48%] items-center bg-white p-3 rounded-xl border border-border">
-              <View className="w-full h-14 rounded-lg bg-lingua-purple mb-2" />
-              <Text className="text-xs font-semibold text-text-primary font-poppins-semibold text-center">
-                LINGUA PURPLE
-              </Text>
-              <Text className="text-[11px] text-text-secondary font-poppins-regular">
-                #6C4EF5
-              </Text>
-            </View>
-            <View className="w-[48%] items-center bg-white p-3 rounded-xl border border-border">
-              <View className="w-full h-14 rounded-lg bg-lingua-deep-purple mb-2" />
-              <Text className="text-xs font-semibold text-text-primary font-poppins-semibold text-center">
-                LINGUA DEEP PURPLE
-              </Text>
-              <Text className="text-[11px] text-text-secondary font-poppins-regular">
-                #5B3BF6
-              </Text>
-            </View>
-            <View className="w-[48%] items-center bg-white p-3 rounded-xl border border-border">
-              <View className="w-full h-14 rounded-lg bg-lingua-blue mb-2" />
-              <Text className="text-xs font-semibold text-text-primary font-poppins-semibold text-center">
-                LINGUA BLUE
-              </Text>
-              <Text className="text-[11px] text-text-secondary font-poppins-regular">
-                #4D8BFF
-              </Text>
-            </View>
-            <View className="w-[48%] items-center bg-white p-3 rounded-xl border border-border">
-              <View className="w-full h-14 rounded-lg bg-lingua-green mb-2" />
-              <Text className="text-xs font-semibold text-text-primary font-poppins-semibold text-center">
-                LINGUA GREEN
-              </Text>
-              <Text className="text-[11px] text-text-secondary font-poppins-regular">
-                #21C16B
-              </Text>
-            </View>
-          </View>
-
-          {/* Semantic Colors */}
-          <Text className="typography-caption text-text-secondary uppercase tracking-wider mb-3 font-semibold">
-            SEMANTIC
-          </Text>
-          <View className="flex-row flex-wrap justify-between mb-5 gap-y-3">
-            <View className="w-[31%] items-center bg-white p-2.5 rounded-xl border border-border">
-              <View className="w-full h-10 rounded-lg bg-success mb-2" />
-              <Text className="text-[11px] font-semibold text-text-primary font-poppins-semibold text-center">
-                SUCCESS
-              </Text>
-              <Text className="text-[10px] text-text-secondary font-poppins-regular">
-                #21C16B
-              </Text>
-            </View>
-            <View className="w-[31%] items-center bg-white p-2.5 rounded-xl border border-border">
-              <View className="w-full h-10 rounded-lg bg-warning mb-2" />
-              <Text className="text-[11px] font-semibold text-text-primary font-poppins-semibold text-center">
-                WARNING
-              </Text>
-              <Text className="text-[10px] text-text-secondary font-poppins-regular">
-                #FFC800
-              </Text>
-            </View>
-            <View className="w-[31%] items-center bg-white p-2.5 rounded-xl border border-border">
-              <View className="w-full h-10 rounded-lg bg-streak mb-2" />
-              <Text className="text-[11px] font-semibold text-text-primary font-poppins-semibold text-center">
-                STREAK
-              </Text>
-              <Text className="text-[10px] text-text-secondary font-poppins-regular">
-                #FF8A00
-              </Text>
-            </View>
-            <View className="w-[48%] items-center bg-white p-2.5 rounded-xl border border-border">
-              <View className="w-full h-10 rounded-lg bg-error mb-2" />
-              <Text className="text-[11px] font-semibold text-text-primary font-poppins-semibold text-center">
-                ERROR
-              </Text>
-              <Text className="text-[10px] text-text-secondary font-poppins-regular">
-                #FF4D4F
-              </Text>
-            </View>
-            <View className="w-[48%] items-center bg-white p-2.5 rounded-xl border border-border">
-              <View className="w-full h-10 rounded-lg bg-info mb-2" />
-              <Text className="text-[11px] font-semibold text-text-primary font-poppins-semibold text-center">
-                INFO
-              </Text>
-              <Text className="text-[10px] text-text-secondary font-poppins-regular">
-                #4D8BFF
-              </Text>
-            </View>
-          </View>
-
-          {/* Neutrals */}
-          <Text className="typography-caption text-text-secondary uppercase tracking-wider mb-3 font-semibold">
-            NEUTRALS
-          </Text>
-          <View className="flex-row flex-wrap justify-between gap-y-3">
-            <View className="w-[31%] items-center bg-white p-2.5 rounded-xl border border-border">
-              <View className="w-full h-10 rounded-lg bg-text-primary mb-2" />
-              <Text className="text-[10px] font-semibold text-text-primary font-poppins-semibold text-center">
-                TEXT PRIMARY
-              </Text>
-              <Text className="text-[10px] text-text-secondary font-poppins-regular">
-                #0D132B
-              </Text>
-            </View>
-            <View className="w-[31%] items-center bg-white p-2.5 rounded-xl border border-border">
-              <View className="w-full h-10 rounded-lg bg-text-secondary mb-2" />
-              <Text className="text-[10px] font-semibold text-text-primary font-poppins-semibold text-center">
-                TEXT SECONDARY
-              </Text>
-              <Text className="text-[10px] text-text-secondary font-poppins-regular">
-                #6B7280
-              </Text>
-            </View>
-            <View className="w-[31%] items-center bg-white p-2.5 rounded-xl border border-border">
-              <View className="w-full h-10 rounded-lg bg-border mb-2" />
-              <Text className="text-[10px] font-semibold text-text-primary font-poppins-semibold text-center">
-                BORDER
-              </Text>
-              <Text className="text-[10px] text-text-secondary font-poppins-regular">
-                #E5E7EB
-              </Text>
-            </View>
-            <View className="w-[48%] items-center bg-white p-2.5 rounded-xl border border-border">
-              <View className="w-full h-10 rounded-lg bg-surface border border-border mb-2" />
-              <Text className="text-[11px] font-semibold text-text-primary font-poppins-semibold text-center">
-                SURFACE
-              </Text>
-              <Text className="text-[10px] text-text-secondary font-poppins-regular">
-                #F6F7FB
-              </Text>
-            </View>
-            <View className="w-[48%] items-center bg-white p-2.5 rounded-xl border border-border">
-              <View className="w-full h-10 rounded-lg bg-background border border-border mb-2" />
-              <Text className="text-[11px] font-semibold text-text-primary font-poppins-semibold text-center">
-                BACKGROUND
-              </Text>
-              <Text className="text-[10px] text-text-secondary font-poppins-regular">
-                #FFFFFF
-              </Text>
+              <View className="bg-[#F3EFFF] px-3 py-1.5 rounded-full">
+                <Text className="font-poppins-semibold text-xs text-lingua-deep-purple">
+                  0 XP
+                </Text>
+              </View>
             </View>
           </View>
         </View>
 
-        {/* Typography Section */}
-        <View className="bg-surface rounded-2xl p-5 border border-border mb-6">
-          <Text className="typography-caption text-lingua-purple font-semibold uppercase tracking-wider mb-2">
-            TYPOGRAPHY
+        {/* Mascot Center Illustration */}
+        <View className="items-center justify-center my-4">
+          <Image
+            source={images.mascotWelcome}
+            style={styles.mascotImage}
+            resizeMode="contain"
+          />
+          <Text className="font-poppins-bold text-xl text-text-primary text-center mt-2">
+            Ready to learn?
           </Text>
-          <Text className="typography-caption text-text-secondary uppercase tracking-wider mb-1">
-            FONT FAMILY
+          <Text className="font-poppins-regular text-sm text-text-secondary text-center mt-1 px-4">
+            Explore interactive AI-guided lessons and practice real-world conversations!
           </Text>
-          <Text className="text-3xl font-bold text-text-primary font-poppins-bold mb-2">
-            Poppins
-          </Text>
-          <Text className="typography-body-sm text-text-secondary mb-6">
-            Poppins is a modern, geometric sans-serif typeface that provides excellent
-            readability and a friendly personality.
-          </Text>
-
-          {/* Typography Scale Table */}
-          <View className="bg-white rounded-xl p-4 border border-border gap-y-4">
-            {/* H1 */}
-            <View className="border-b border-border pb-3">
-              <View className="flex-row items-baseline justify-between mb-1">
-                <Text className="typography-h1">H1</Text>
-                <Text className="typography-caption text-text-secondary">
-                  32px · Bold · 1.2
-                </Text>
-              </View>
-              <Text className="typography-body-sm text-text-secondary">
-                Page / Screen Title
-              </Text>
-            </View>
-
-            {/* H2 */}
-            <View className="border-b border-border pb-3">
-              <View className="flex-row items-baseline justify-between mb-1">
-                <Text className="typography-h2">H2</Text>
-                <Text className="typography-caption text-text-secondary">
-                  24px · SemiBold · 1.3
-                </Text>
-              </View>
-              <Text className="typography-body-sm text-text-secondary">
-                Section Title
-              </Text>
-            </View>
-
-            {/* H3 */}
-            <View className="border-b border-border pb-3">
-              <View className="flex-row items-baseline justify-between mb-1">
-                <Text className="typography-h3">H3</Text>
-                <Text className="typography-caption text-text-secondary">
-                  20px · SemiBold · 1.3
-                </Text>
-              </View>
-              <Text className="typography-body-sm text-text-secondary">
-                Card / Module Title
-              </Text>
-            </View>
-
-            {/* H4 */}
-            <View className="border-b border-border pb-3">
-              <View className="flex-row items-baseline justify-between mb-1">
-                <Text className="typography-h4">H4</Text>
-                <Text className="typography-caption text-text-secondary">
-                  16px · Medium · 1.4
-                </Text>
-              </View>
-              <Text className="typography-body-sm text-text-secondary">
-                Subheading
-              </Text>
-            </View>
-
-            {/* Body Large */}
-            <View className="border-b border-border pb-3">
-              <View className="flex-row items-baseline justify-between mb-1">
-                <Text className="typography-body-lg font-semibold">Body Large</Text>
-                <Text className="typography-caption text-text-secondary">
-                  16px · Regular · 1.6
-                </Text>
-              </View>
-              <Text className="typography-body-lg text-text-primary">
-                Important content
-              </Text>
-            </View>
-
-            {/* Body Medium */}
-            <View className="border-b border-border pb-3">
-              <View className="flex-row items-baseline justify-between mb-1">
-                <Text className="typography-body-md font-semibold">Body Medium</Text>
-                <Text className="typography-caption text-text-secondary">
-                  14px · Regular · 1.6
-                </Text>
-              </View>
-              <Text className="typography-body-md text-text-primary">
-                Body text
-              </Text>
-            </View>
-
-            {/* Body Small */}
-            <View className="border-b border-border pb-3">
-              <View className="flex-row items-baseline justify-between mb-1">
-                <Text className="typography-body-sm font-semibold">Body Small</Text>
-                <Text className="typography-caption text-text-secondary">
-                  13px · Regular · 1.6
-                </Text>
-              </View>
-              <Text className="typography-body-sm text-text-secondary">
-                Supporting text
-              </Text>
-            </View>
-
-            {/* Caption */}
-            <View>
-              <View className="flex-row items-baseline justify-between mb-1">
-                <Text className="typography-caption font-semibold">Caption</Text>
-                <Text className="typography-caption text-text-secondary">
-                  11px · Regular · 1.4
-                </Text>
-              </View>
-              <Text className="typography-caption text-text-secondary">
-                Labels, meta text
-              </Text>
-            </View>
-          </View>
         </View>
-      </ScrollView>
+
+        {/* Start Learning Action */}
+        <View className="w-full">
+          <TouchableOpacity
+            activeOpacity={0.85}
+            className="w-full h-14 bg-lingua-deep-purple rounded-2xl flex-row items-center justify-center px-6 shadow-sm"
+          >
+            <Text className="font-poppins-semibold text-white text-[17px]">
+              Start Lesson
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </SafeAreaView>
   );
 }
@@ -352,10 +140,26 @@ export default function Index() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
+    backgroundColor: "#F9F9FB",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: "#FFFFFF",
   },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
+  headerLogo: {
+    width: 36,
+    height: 36,
+  },
+  signOutButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: "#FEE2E2",
+  },
+  mascotImage: {
+    width: 220,
+    height: 220,
   },
 });
