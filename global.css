@@ -1,0 +1,104 @@
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css";
+
+@import "nativewind/theme";
+
+@theme {
+  /* Brand / Primary Colors */
+  --color-primary: #6C4EF5;
+  --color-primary-deep: #5B3BF6;
+  --color-primary-blue: #4D8BFF;
+  --color-primary-green: #21C16B;
+
+  --color-lingua-purple: #6C4EF5;
+  --color-lingua-deep-purple: #5B3BF6;
+  --color-lingua-blue: #4D8BFF;
+  --color-lingua-green: #21C16B;
+
+  /* Semantic Colors */
+  --color-success: #21C16B;
+  --color-warning: #FFC800;
+  --color-streak: #FF8A00;
+  --color-error: #FF4D4F;
+  --color-info: #4D8BFF;
+
+  /* Neutrals */
+  --color-text-primary: #0D132B;
+  --color-text-secondary: #6B7280;
+  --color-border: #E5E7EB;
+  --color-surface: #F6F7FB;
+  --color-background: #FFFFFF;
+
+  /* Font Families */
+  --font-poppins: Poppins-Regular, sans-serif;
+  --font-poppins-regular: Poppins-Regular;
+  --font-poppins-medium: Poppins-Medium;
+  --font-poppins-semibold: Poppins-SemiBold;
+  --font-poppins-bold: Poppins-Bold;
+
+  --font-regular: Poppins-Regular;
+  --font-medium: Poppins-Medium;
+  --font-semibold: Poppins-SemiBold;
+  --font-bold: Poppins-Bold;
+}
+
+/* ==========================================================================
+   Design System Typography Utilities (BEM pattern)
+   ========================================================================== */
+
+.typography-h1 {
+  font-family: Poppins-Bold;
+  font-size: 32px;
+  line-height: 38.4px;
+  color: #0D132B;
+}
+
+.typography-h2 {
+  font-family: Poppins-SemiBold;
+  font-size: 24px;
+  line-height: 31.2px;
+  color: #0D132B;
+}
+
+.typography-h3 {
+  font-family: Poppins-SemiBold;
+  font-size: 20px;
+  line-height: 26px;
+  color: #0D132B;
+}
+
+.typography-h4 {
+  font-family: Poppins-Medium;
+  font-size: 16px;
+  line-height: 22.4px;
+  color: #0D132B;
+}
+
+.typography-body-lg {
+  font-family: Poppins-Regular;
+  font-size: 16px;
+  line-height: 25.6px;
+  color: #0D132B;
+}
+
+.typography-body-md {
+  font-family: Poppins-Regular;
+  font-size: 14px;
+  line-height: 22.4px;
+  color: #0D132B;
+}
+
+.typography-body-sm {
+  font-family: Poppins-Regular;
+  font-size: 13px;
+  line-height: 20.8px;
+  color: #6B7280;
+}
+
+.typography-caption {
+  font-family: Poppins-Regular;
+  font-size: 11px;
+  line-height: 15.4px;
+  color: #6B7280;
+}
