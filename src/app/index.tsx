@@ -1,5 +1,6 @@
-import { View, Text, ScrollView, Image, StyleSheet } from "react-native";
+import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Link } from "expo-router";
 import { images } from "@/constants/images";
 
 export default function Index() {
@@ -23,6 +24,31 @@ export default function Index() {
             Design System & Theme
           </Text>
         </View>
+
+        {/* Navigation to Onboarding Screen */}
+        <Link href="/onboarding" asChild>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            className="w-full bg-lingua-deep-purple p-4 rounded-2xl flex-row items-center justify-between mb-6 shadow-sm"
+          >
+            <View className="flex-row items-center gap-3">
+              <Image
+                source={images.mascotLogo}
+                className="w-10 h-10"
+                resizeMode="contain"
+              />
+              <View>
+                <Text className="font-poppins-semibold text-white text-base">
+                  Onboarding Screen
+                </Text>
+                <Text className="font-poppins-regular text-white/80 text-xs">
+                  Tap to view onboarding flow
+                </Text>
+              </View>
+            </View>
+            <View className="w-2.5 h-2.5 border-t-2 border-r-2 border-white rotate-45 mr-2" />
+          </TouchableOpacity>
+        </Link>
 
         {/* Brand Showcase Card */}
         <View className="bg-surface rounded-2xl p-5 border border-border mb-6">
